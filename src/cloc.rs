@@ -24,17 +24,17 @@ impl FileInfo {
 }
 
 fn fmt_info_entries(info_entries: &Vec<FileInfo>) -> String {
-	let mut output = String::new();
+	let mut acc = String::new();
 	let mut sum: u32 = 0;
 
 	for info in info_entries {
-		output += &format!("{}\n", info.fmt());
+		acc += &format!("{}\n", info.fmt());
 		sum += info.lines;
 	}
 
 	let sum_info = FileInfo { name: "SUM".to_string(), lines: sum };
-	output += &format!("\n{}", sum_info.fmt());
-	output
+	acc += &format!("\n{}", sum_info.fmt());
+	acc
 }
 
 fn get_file_info() -> io::Result<Vec<FileInfo>> {
