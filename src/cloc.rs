@@ -1,4 +1,4 @@
-use std::{fs, io};
+use std::{fs, io, iter::once};
 
 pub fn main() -> String {
 	match get_file_info() {
@@ -24,17 +24,13 @@ impl FileInfo {
 }
 
 fn fmt_info_entries(info_entries: &Vec<FileInfo>) -> String {
-	let mut acc = String::new();
-	let mut sum: u32 = 0;
-
-	for info in info_entries {
-		acc += &format!("{}\n", info.fmt());
-		sum += info.lines;
-	}
-
+	let sum = info_entries.iter().map(|x| { x.lines }).sum::<u32>();
 	let sum_info = FileInfo { name: "SUM".to_string(), lines: sum };
-	acc += &format!("\n{}", sum_info.fmt());
-	acc
+	info_entries.iter()
+		.chain(once(&sum_info))
+		.map(|x| { x.fmt() })
+		.collect::<Vec<_>>()
+		.join("\n")
 }
 
 fn get_file_info() -> io::Result<Vec<FileInfo>> {
