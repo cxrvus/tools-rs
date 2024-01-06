@@ -1,64 +1,64 @@
-use std::{fs, io};
+use std::{env, fs, io};
 
 pub fn main() -> String {
-	match get_file_info() {
-		Ok(info_entries)  => {
+	let file_info = get_file_info();
+	match file_info {
+		Ok(info_entries) => {
 			match info_entries.len() {
 				0 => { "no files found".to_string() }
-				_ => { fmt_info_entries(&info_entries) }
+				_ => {
+					info_entries.iter()
+					.map(|x| { x.fmt() })
+					.collect::<Vec<_>>()
+					.join("\n")
+				}
 			}
 		}
-		Err(e) => e.to_string()
+		Err(e) => format!("<!> {}", e.to_string())
 	} 
 }
 
 struct FileInfo {
 	name: String,
-	lines: u32
+	line_count: u32
 }
 
 impl FileInfo {
 	fn fmt(&self) -> String {
-		format!("{: >20}: {: >6} lines", self.name, self.lines)
+		format!("{: >20}: {: >6} lines", self.name, self.line_count)
 	}
-}
-
-fn fmt_info_entries(info_entries: &Vec<FileInfo>) -> String {
-	let mut output = String::new();
-	let mut sum: u32 = 0;
-
-	for info in info_entries {
-		output += &format!("{}\n", info.fmt());
-		sum += info.lines;
-	}
-
-	let sum_info = FileInfo { name: "SUM".to_string(), lines: sum };
-	output += &format!("\n{}", sum_info.fmt());
-	output
 }
 
 fn get_file_info() -> io::Result<Vec<FileInfo>> {
 	const EXTENSIONS: [&str; 1] = ["ts"];
 
-	let path_arg = std::env::args().nth(1).unwrap_or(".".to_string());
+	let path_arg = env::args().nth(1).unwrap_or(".".to_string());
 	let entries = fs::read_dir(path_arg)?;
-	
-	let mut info: Vec<FileInfo> = vec![];
+	let mut info_entries: Vec<FileInfo> = vec![];
+	let mut sum = 0 as u32;
 	
 	for entry in entries {
 		let entry = entry?;
 		let path = entry.path();
 		
 		if let Some(extension) = path.extension() { 
-			if !EXTENSIONS.contains(&extension.to_str().unwrap()) { continue }
+			let extension_str = extension.to_str().unwrap_or_default();
+			if !EXTENSIONS.contains(&extension_str) { continue }
 
-			let name = entry.file_name().into_string().unwrap();
+			let name = entry.file_name().into_string().unwrap_or("[no name]".to_string());
 			let content = fs::read_to_string(path)?;
-			let lines = content.lines().count() as u32;
+			let lines = content.lines().filter(|x| x.len() > 0);
+			let line_count = lines.count() as u32;
 		
-			info.push(FileInfo { name, lines })
+			sum += line_count;
+			info_entries.push(FileInfo { name, line_count })
 		};
 	}
 
-	Ok(info)
+	if info_entries.len() > 0 {
+		let sum_entry = FileInfo { name: "SUM".to_string(), line_count: sum };
+		info_entries.push(sum_entry);
+	}
+
+	Ok(info_entries)
 }
